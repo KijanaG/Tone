@@ -1,9 +1,10 @@
 import React, { PureComponent } from 'react';
-import { StyleSheet, Text, View, Button, Image, Alert, Dimensions, TouchableHighlight } from 'react-native';
+import { StyleSheet, Text, View, Button, Image, Alert, Dimensions, TouchableOpacity, AppState } from 'react-native';
 import Spotify from 'rn-spotify-sdk';
 import Voice from 'react-native-voice';
 import * as Animatable from 'react-native-animatable';
 import Icon from 'react-native-vector-icons/Ionicons';
+import backgroundImage from '../../assets/blank.jpg';
 
 var { width, height } = Dimensions.get('window');
 var timeout = "timeout";
@@ -27,15 +28,30 @@ class Main extends PureComponent {
         currentMood: "",
         time: 15000,
         songs: [],
-        image: null
+        image: null,
+        isPlaying: false,
+        appState: AppState.currentState
     }
 
     componentDidMount() {
+        console.log("Mounting");
+        AppState.addEventListener('change', this._handleAppStateChange)
         this.setState({ token: this.props.tokenId, user: this.props.user })
         this.sendUser();
         this.cycle();
-        this.setState({ time: 50000 })
+        this.setState({ time: 20000 })
         this.loop();
+    }
+
+    componentWillUnmount() {
+        AppState.removeEventListener('change', this._handleAppStateChange);
+    }
+
+    _handleAppStateChange = (nextAppState) => {
+        if (nextAppState == "inactive") {
+            this.pauseMusic();
+            this.stopVoice();
+        }
     }
 
     loop = () => {
@@ -126,30 +142,47 @@ class Main extends PureComponent {
     }
 
     nextSong = () => {
-        console.log("Playing Song!");
-        Spotify.playURI(this.state.songs[0]['uri'], 0, 0).then();
+        console.log("Playing Song!", this.state.songs[0]['uri']);
+        Spotify.playURI(this.state.songs[0]['uri'], 0, 0);
         let cat = this.state.songs[0]['cat'];
         let songs = this.state.songs;
         let group = songs.splice(1);
         this.setState({ songs: group, category: cat });
+        console.log(this.state);
         clearTimeout(timeout);
         setTimeout(() => {
             this.playBack();
-        }, 1200)
+        }, 1750)
     }
     playBack = () => {
+        console.log("Inside PLAYBALCKCKC");
         Spotify.getPlaybackMetadataAsync().then(res => {
             console.log("Meta", res);
             let time = (res['currentTrack']['duration'] * 1000) - 3;
             this.setState({
                 image: res['currentTrack']['albumCoverArtURL'],
                 artist: res['currentTrack']['artistName'],
-                songTitle: res['currentTrack']['name']
+                songTitle: res['currentTrack']['name'],
+                isPlaying: true
             })
             timeout = setTimeout(() => {
                 this.nextSong();
             }, time);
         });
+    }
+
+    resumeMusic = () => {
+        Spotify.setPlaying(true).then();
+        this.setState({ isPlaying: true })
+    }
+    pauseMusic = () => {
+        Spotify.setPlaying(false).then();
+        this.setState({ isPlaying: false })
+    }
+
+    toPrevious = () => {
+        Spotify.skipToPrevious().then();
+        this.setState({ isPlaying: true })
     }
 
     sendNReceive = () => {
@@ -185,9 +218,12 @@ class Main extends PureComponent {
                     this.populateSongs(parsedRes['data']['songs'], 1);
                 }
                 this.setState({ text: "" })
-                Spotify.renewSession().then().catch(err => {
-                    Alert.alert("Error Renewing Session.", err.message)
-                })
+                Spotify.isLoggedInAsync().then(res => {
+                    if (!res) {
+                        Spotify.login().then(res => console.log("Log Back In ", res))
+                            .catch(err => console.log(err));
+                    }
+                }).catch(err => console.log(err));
             })
             .catch(err => {
                 alert("Something went wrong, sorry!");
@@ -204,6 +240,8 @@ class Main extends PureComponent {
         for (song in songs)
             list.push(songs[song]);
         this.setState({ songs: list });
+        if (num == 0)
+            this.nextSong();
     }
 
     render() {
@@ -211,10 +249,10 @@ class Main extends PureComponent {
         if (this.state.image) {
             URL = (
                 <View>
-                    <Image style={{ width: width, height: 372 }}
+                    <Image style={{ width: width, height: 372, marginTop: 20, marginBottom: 15 }}
                         source={{ uri: this.state.image }} />
-                    <Text>{this.state.artist}</Text>
-                    <Text>{this.state.songTitle}</Text>
+                    <Text style={styles.title}>{this.state.songTitle}</Text>
+                    <Text style={styles.title}>{this.state.artist}</Text>
                 </View>
             )
         } else {
@@ -226,41 +264,49 @@ class Main extends PureComponent {
         }
         return (
             <View style={styles.container}>
-                <Animatable.View ref={this.handleViewRef} duration={2000} style={{ alignSelf: "flex-start", marginTop: 55, marginLeft: 25 }}>
+                <Image source={backgroundImage} style={{ width: width, height: height, position: "absolute", opacity: 0.35 }} />
+                <Animatable.View ref={this.handleViewRef} duration={2000} style={{ alignSelf: "flex-start", marginTop: 55, marginLeft: 25, position: "absolute" }}>
                     <Icon
                         name={"ios-microphone"}
                         size={35}
-                        color="black" />
+                        color="#C0C0C0" />
                 </Animatable.View>
-                <Text> This is the main screen</Text>
-                <Text> This is the main screen</Text>
-                <Text> This is the main screen</Text>
+                <Text style={styles.heading}>Tone</Text>
                 {URL}
-                <Button onPress={this.nextSong} title="Play song" />
-                <Text> This is the main screen</Text>
-                <Button onPress={this.playBack} title="Get State" />
-                <Text> This is the main screen</Text>
                 <View style={styles.play}>
-                <Icon
-                    style={styles.icon}
-                    name={"ios-pause"}
-                    size={40}
-                    color="black" />
-                <Icon
-                    style={styles.icon}
-                    name={"ios-play"}
-                    size={40}
-                    color="black" />
-                <Icon
-                    style={styles.icon}
-                    name={"ios-skip-forward"}
-                    size={40}
-                    color="black" />
+                    <TouchableOpacity>
+                        <Icon
+                            style={[styles.icon, { marginTop: 10 }]}
+                            name={"ios-information-circle-outline"}
+                            size={30}
+                            color="#C0C0C0" />
+                    </TouchableOpacity>
+                    {this.state.isPlaying ?
+                        <TouchableOpacity onPress={this.pauseMusic}>
+                            <Icon
+                                style={styles.icon}
+                                name={"ios-pause"}
+                                size={50}
+                                color="yellow" />
+                        </TouchableOpacity>
+                        :
+                        <TouchableOpacity onPress={this.resumeMusic}>
+                            <Icon
+                                style={styles.icon}
+                                name={"ios-play"}
+                                size={50}
+                                color="#C0C0C0" />
+                        </TouchableOpacity>
+                    }
+                    <TouchableOpacity onPress={this.nextSong}>
+                        <Icon
+                            style={[styles.icon, { marginTop: 10 }]}
+                            name={"ios-skip-forward"}
+                            size={30}
+                            color="#C0C0C0" />
+                    </TouchableOpacity>
                 </View>
                 <Button onPress={this.sendNReceive} title="Send Voice Data" />
-
-                <Text> This is the main screen</Text>
-                <Text> This is the main screen</Text>
             </View>
         );
     }
@@ -271,21 +317,32 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: "center",
         alignContent: "center",
-        backgroundColor: "#afb5d7"
+        backgroundColor: "#000000"
     },
     play: {
         flexDirection: "row",
         alignSelf: "center",
-        justifyContent: "space-between"
+        justifyContent: "space-between",
     },
-    text: {
-        margin: -5
+    heading: {
+        marginTop: 70,
+        marginBottom: 10,
+        fontFamily: "Avenir-Roman",
+        fontSize: 35,
+        fontWeight: "bold",
+        color: "#C0C0C0",
+        letterSpacing: 3,
     },
     icon: {
-        // alignItems: "center",
-        // textAlign: "center",
-        marginRight: 36,
-        marginLeft: 36
+        marginLeft: 30,
+        marginRight: 30
+    },
+    title: {
+        textAlign: "center",
+        margin: 10,
+        fontSize: 24,
+        fontFamily: "Avenir-Roman",
+        color: "#C0C0C0"
     }
 })
 
