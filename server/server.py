@@ -40,6 +40,11 @@ class User(Resource):
         new = db.get_user(username)
         return ({"newUser": new['isNew'], "mood": new['user'].current})
 
+class MoodChange(Resource):
+    def post(self):
+        json_data = request.get_json(force=True)
+        mood = json_data['mood']
+        user = json_data['user']
 
 class Textual(Resource):
     def post(self):
@@ -58,8 +63,8 @@ class Textual(Resource):
         currUser = db.get_user(username)['user']
 
         #Return Songs to User Based on Mood
-        if multiply < -50:  mood = "negative"
-        elif multiply > 50: mood = "positive"
+        if multiply < -80:  mood = "negative"
+        elif multiply > 80: mood = "positive"
         else:               mood = "neutral"
 
         if currUser.current == mood:
@@ -71,6 +76,7 @@ class Textual(Resource):
 
 api.add_resource(Textual, '/send')
 api.add_resource(User, '/user')
+api.add_resource(MoodChange, '/mood')
 # api.add_resource(Preference, '/update')
 
 if __name__ == '__main__':

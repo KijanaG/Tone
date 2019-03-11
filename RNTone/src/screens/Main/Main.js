@@ -30,7 +30,9 @@ class Main extends PureComponent {
         songs: [],
         image: null,
         isPlaying: false,
-        appState: AppState.currentState
+        appState: AppState.currentState,
+        songTitle: "",
+        artist: ""
     }
 
     componentDidMount() {
@@ -185,6 +187,22 @@ class Main extends PureComponent {
         this.setState({ isPlaying: true })
     }
 
+    ratings = (id) => {
+
+    }
+    ///////*************** If mood changed, send to DBBDBDBDB********** */
+    updateDB = () => {
+        const info = {
+            mood: this.state.mood,
+            user: this.state.user
+        }
+        fetch("http://127.0.0.1:5000/mood", {
+            method: "POST",
+            body: JSON.stringify(info)
+        }).then(res => res.json())
+            .then(parsedRes => console.log(parsedRes));
+    }
+
     sendNReceive = () => {
         console.log("Sending Voice To Server")
         const info = {
@@ -199,24 +217,22 @@ class Main extends PureComponent {
             .then(parsedRes => {
                 console.log(parsedRes)
                 if (parsedRes['moodChanged']) {
+                    console.log(parsedRes);
                     this.setState({ currentMood: parsedRes['moodChanged'] });
                     Alert.alert("Mood Detection Changed!",
                         "Would you like to change the music to match the mood?",
-                        [
-                            {
+                        [{
                                 text: "No",
                                 onPress: () => console.log("Do Nothing"),
                                 style: "cancel"
-                            },
-                            {
+                            },{
                                 text: "Yes",
-                                onPress: () => { this.populateSongs(parsedRes['data']['songs'], 0) }
+                                onPress: () => {this.populateSongs(parsedRes['data']['songs'], 0)}
                             }
                         ])
                 }
-                if (this.state.songs.length < 10) {
+                if (this.state.songs.length < 10)
                     this.populateSongs(parsedRes['data']['songs'], 1);
-                }
                 this.setState({ text: "" })
                 Spotify.isLoggedInAsync().then(res => {
                     if (!res) {
@@ -224,8 +240,7 @@ class Main extends PureComponent {
                             .catch(err => console.log(err));
                     }
                 }).catch(err => console.log(err));
-            })
-            .catch(err => {
+            }).catch(err => {
                 alert("Something went wrong, sorry!");
                 console.log(err);
             })
@@ -233,9 +248,10 @@ class Main extends PureComponent {
 
     populateSongs = (songs, num) => {
         let list;
-        if (num)
+        if (num) {
             list = [];
-        else
+            this.updateDB();
+        } else
             list = this.state.songs;
         for (song in songs)
             list.push(songs[song]);
@@ -245,14 +261,58 @@ class Main extends PureComponent {
     }
 
     render() {
+        let songFont = null;
+        if(this.state.songTitle.length > 26) songFont = {fontSize: 20};
+        let artistFont = null;
+        if(this.state.artist.length > 26) artistFont = {fontSize: 20};
         let URL = null;
         if (this.state.image) {
             URL = (
                 <View>
                     <Image style={{ width: width, height: 372, marginTop: 20, marginBottom: 15 }}
                         source={{ uri: this.state.image }} />
-                    <Text style={styles.title}>{this.state.songTitle}</Text>
-                    <Text style={styles.title}>{this.state.artist}</Text>
+                    <Text style={[styles.title, songFont]}>{this.state.songTitle}</Text>
+                    <Text style={[styles.title, artistFont]}>{this.state.artist}</Text>
+                    <View style={styles.play}>
+                        <TouchableOpacity>
+                            <Icon
+                                style={[styles.icon, { marginTop: 11 }]}
+                                name={"ios-information-circle-outline"}
+                                size={30}
+                                color="yellow" />
+                        </TouchableOpacity>
+                        {this.state.isPlaying ?
+                            <TouchableOpacity onPress={this.pauseMusic}>
+                                <Icon
+                                    style={styles.icon}
+                                    name={"ios-pause"}
+                                    size={50}
+                                    color="yellow" />
+                            </TouchableOpacity>
+                            :
+                            <TouchableOpacity onPress={this.resumeMusic}>
+                                <Icon
+                                    style={styles.icon}
+                                    name={"ios-play"}
+                                    size={50}
+                                    color="#C0C0C0" />
+                            </TouchableOpacity>
+                        }
+                        <TouchableOpacity onPress={this.nextSong}>
+                            <Icon
+                                style={[styles.icon, { marginTop: 10 }]}
+                                name={"ios-skip-forward"}
+                                size={30}
+                                color="purple" />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{ flexDirection: "row", alignSelf: "center", marginTop: 10 }}>
+                        <TouchableOpacity onPress={() => this.ratings(0)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
+                        <TouchableOpacity onPress={() => this.ratings(1)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
+                        <TouchableOpacity onPress={() => this.ratings(2)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
+                        <TouchableOpacity onPress={() => this.ratings(3)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
+                        <TouchableOpacity onPress={() => this.ratings(4)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
+                    </View>
                 </View>
             )
         } else {
@@ -273,40 +333,10 @@ class Main extends PureComponent {
                 </Animatable.View>
                 <Text style={styles.heading}>Tone</Text>
                 {URL}
-                <View style={styles.play}>
-                    <TouchableOpacity>
-                        <Icon
-                            style={[styles.icon, { marginTop: 10 }]}
-                            name={"ios-information-circle-outline"}
-                            size={30}
-                            color="#C0C0C0" />
-                    </TouchableOpacity>
-                    {this.state.isPlaying ?
-                        <TouchableOpacity onPress={this.pauseMusic}>
-                            <Icon
-                                style={styles.icon}
-                                name={"ios-pause"}
-                                size={50}
-                                color="yellow" />
-                        </TouchableOpacity>
-                        :
-                        <TouchableOpacity onPress={this.resumeMusic}>
-                            <Icon
-                                style={styles.icon}
-                                name={"ios-play"}
-                                size={50}
-                                color="#C0C0C0" />
-                        </TouchableOpacity>
-                    }
-                    <TouchableOpacity onPress={this.nextSong}>
-                        <Icon
-                            style={[styles.icon, { marginTop: 10 }]}
-                            name={"ios-skip-forward"}
-                            size={30}
-                            color="#C0C0C0" />
-                    </TouchableOpacity>
+                <View style={{flexDirection: "row", justifyContent: "space-evenly"}}>
+                    <Button onPress={this.nextSong} title="Get Song" />
+                    <Button onPress={this.sendNReceive} title="Send Voice Data" />
                 </View>
-                <Button onPress={this.sendNReceive} title="Send Voice Data" />
             </View>
         );
     }
@@ -323,6 +353,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignSelf: "center",
         justifyContent: "space-between",
+        marginTop: 10
     },
     heading: {
         marginTop: 70,
