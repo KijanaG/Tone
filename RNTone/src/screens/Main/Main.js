@@ -32,7 +32,9 @@ class Main extends PureComponent {
         isPlaying: false,
         appState: AppState.currentState,
         songTitle: "",
-        artist: ""
+        artist: "",
+        stars: [0, 0, 0, 0, 0],
+        starCount: 0
     }
 
     componentDidMount() {
@@ -53,6 +55,13 @@ class Main extends PureComponent {
         if (nextAppState == "inactive") {
             this.pauseMusic();
             this.stopVoice();
+        } else if (nextAppState == "active") {
+            Spotify.isLoggedInAsync().then(res => {
+                if (!res)
+                    Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => console.log(err));
+                else
+                    Spotify.renewSession().then(res => console.log(res));
+            }).catch(err => console.log(err));
         }
     }
 
@@ -86,7 +95,6 @@ class Main extends PureComponent {
     onSpeechStart = e => { }
     onSpeechEnd = e => { }
     onSpeechError = e => {
-        this.setState({ error: JSON.stringify(e.error) })
         this.destroyVoice();
     }
     onSpeechResults = e => {
@@ -113,6 +121,10 @@ class Main extends PureComponent {
 
     startVoice = async () => {
         console.log("Start Speech Recognition ~~ ")
+        Spotify.isLoggedInAsync().then(res => {
+            if (!res)
+                Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => console.log(err));
+        }).catch(err => console.log(err));
         try {
             await Voice.start('en-US');
         } catch (e) {
@@ -144,23 +156,30 @@ class Main extends PureComponent {
     }
 
     nextSong = () => {
-        console.log("Playing Song!", this.state.songs[0]['uri']);
-        Spotify.playURI(this.state.songs[0]['uri'], 0, 0);
-        let cat = this.state.songs[0]['cat'];
-        let songs = this.state.songs;
-        let group = songs.splice(1);
-        this.setState({ songs: group, category: cat });
-        console.log(this.state);
         clearTimeout(timeout);
-        setTimeout(() => {
-            this.playBack();
-        }, 1750)
+        if (this.state.songs.length < 5)
+            this.sendNReceive();
+        this.updatePreferences();
+        if (this.state.starCount != 1 &&
+            this.state.starCount != 2) {
+            Spotify.playURI(this.state.songs[0]['uri'], 0, 0)
+                .then(res => {
+                    setTimeout(() => {
+                        this.playBack();
+                    }, 2000)
+                }).catch(err => {
+                    Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => console.log(err));
+                });
+            let cat = this.state.songs[0]['cat'];
+            let songs = this.state.songs;
+            let group = songs.splice(1);
+            this.setState({ songs: group, category: cat });
+        }
     }
+
     playBack = () => {
-        console.log("Inside PLAYBALCKCKC");
         Spotify.getPlaybackMetadataAsync().then(res => {
-            console.log("Meta", res);
-            let time = (res['currentTrack']['duration'] * 1000) - 3;
+            let time = (res['currentTrack']['duration'] * 1000) - 2;
             this.setState({
                 image: res['currentTrack']['albumCoverArtURL'],
                 artist: res['currentTrack']['artistName'],
@@ -174,12 +193,27 @@ class Main extends PureComponent {
     }
 
     resumeMusic = () => {
-        Spotify.setPlaying(true).then();
+        Spotify.setPlaying(true).then(
+            setTimeout(() => {
+                Spotify.getPlaybackStateAsync().then(res => {
+                    pos = res.position;
+                    if(res) {
+                        Spotify.getPlaybackMetadataAsync().then(res => {
+                            let time = (res['currentTrack']['duration'] * 1000) - pos;
+                            timeout = setTimeout(() => {
+                                this.nextSong();
+                            }, time)
+                        })
+                    }
+                })
+            }, 1400)
+        );
         this.setState({ isPlaying: true })
     }
     pauseMusic = () => {
         Spotify.setPlaying(false).then();
         this.setState({ isPlaying: false })
+        clearTimeout(timeout);
     }
 
     toPrevious = () => {
@@ -188,12 +222,22 @@ class Main extends PureComponent {
     }
 
     ratings = (id) => {
-
+        if (id == 0 && this.state.stars[0] == 1) {
+            this.setState({ stars: [0, 0, 0, 0, 0], starCount: 0 })
+            return;
+        }
+        let stars = [0, 0, 0, 0, 0];
+        let fill = 0;
+        if (stars[id] == 0)
+            fill = 1;
+        for (var i = id; i >= 0; i--)
+            stars[i] = fill;
+        this.setState({ stars: stars, starCount: id + 1 });
     }
-    ///////*************** If mood changed, send to DBBDBDBDB********** */
-    updateDB = () => {
+
+    updateMood = () => {
         const info = {
-            mood: this.state.mood,
+            mood: this.state.currentMood,
             user: this.state.user
         }
         fetch("http://127.0.0.1:5000/mood", {
@@ -201,6 +245,33 @@ class Main extends PureComponent {
             body: JSON.stringify(info)
         }).then(res => res.json())
             .then(parsedRes => console.log(parsedRes));
+    }
+
+    stater = () => {
+        console.log(this.state);
+    }
+
+    updatePreferences = () => {
+        if (this.state.starCount != 0) {
+            const info = {
+                rating: this.state.starCount,
+                user: this.state.user,
+                category: this.state.category,
+                token: this.state.token
+            }
+            fetch("http://127.0.0.1:5000/update", {
+                method: "POST",
+                body: JSON.stringify(info)
+            }).then(res => res.json())
+                .then(parsedRes => {
+                    if (parsedRes['change']) {
+                        this.populateSongs(parsedRes['data']['songs'], 0);
+                    } else {
+                        this.populateSongs(parsedRes['data']['songs'], 1);
+                    }
+                });
+        }
+        this.setState({ starCount: 0, stars: [0, 0, 0, 0, 0] })
     }
 
     sendNReceive = () => {
@@ -215,30 +286,29 @@ class Main extends PureComponent {
             body: JSON.stringify(info)
         }).then(res => res.json())
             .then(parsedRes => {
-                console.log(parsedRes)
+                console.log(parsedRes);
                 if (parsedRes['moodChanged']) {
-                    console.log(parsedRes);
-                    this.setState({ currentMood: parsedRes['moodChanged'] });
+                    this.setState({ currentMood: parsedRes['data']['mood'] });
                     Alert.alert("Mood Detection Changed!",
                         "Would you like to change the music to match the mood?",
                         [{
-                                text: "No",
-                                onPress: () => console.log("Do Nothing"),
-                                style: "cancel"
-                            },{
-                                text: "Yes",
-                                onPress: () => {this.populateSongs(parsedRes['data']['songs'], 0)}
-                            }
+                            text: "No",
+                            onPress: () => console.log("Do Nothing"),
+                            style: "cancel"
+                        }, {
+                            text: "Yes",
+                            onPress: () => { this.populateSongs(parsedRes['data']['songs'], 0) }
+                        }
                         ])
                 }
                 if (this.state.songs.length < 10)
                     this.populateSongs(parsedRes['data']['songs'], 1);
                 this.setState({ text: "" })
                 Spotify.isLoggedInAsync().then(res => {
-                    if (!res) {
-                        Spotify.login().then(res => console.log("Log Back In ", res))
-                            .catch(err => console.log(err));
-                    }
+                    if (!res)
+                        Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => Alert.alert("Error", error.message));
+                    else
+                        Spotify.renewSession().then(res => console.log(res));
                 }).catch(err => console.log(err));
             }).catch(err => {
                 alert("Something went wrong, sorry!");
@@ -248,9 +318,9 @@ class Main extends PureComponent {
 
     populateSongs = (songs, num) => {
         let list;
-        if (num) {
+        if (num == 0) {
             list = [];
-            this.updateDB();
+            this.updateMood();
         } else
             list = this.state.songs;
         for (song in songs)
@@ -262,9 +332,13 @@ class Main extends PureComponent {
 
     render() {
         let songFont = null;
-        if(this.state.songTitle.length > 26) songFont = {fontSize: 20};
+        if (this.state.songTitle.length > 26) songFont = { fontSize: 20 };
         let artistFont = null;
-        if(this.state.artist.length > 26) artistFont = {fontSize: 20};
+        if (this.state.artist.length > 26) artistFont = { fontSize: 20 };
+        let stars = null;
+        stars = this.state.stars.map((star, i) => {
+            return <TouchableOpacity key={i} onPress={() => this.ratings(i)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={star == 0 ? "ios-star-outline" : "ios-star"} size={28} color="#C0C0C0" /></TouchableOpacity>
+        })
         let URL = null;
         if (this.state.image) {
             URL = (
@@ -307,17 +381,13 @@ class Main extends PureComponent {
                         </TouchableOpacity>
                     </View>
                     <View style={{ flexDirection: "row", alignSelf: "center", marginTop: 10 }}>
-                        <TouchableOpacity onPress={() => this.ratings(0)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
-                        <TouchableOpacity onPress={() => this.ratings(1)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
-                        <TouchableOpacity onPress={() => this.ratings(2)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
-                        <TouchableOpacity onPress={() => this.ratings(3)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
-                        <TouchableOpacity onPress={() => this.ratings(4)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={"ios-star-outline"} size={28} color="#C0C0C0" /></TouchableOpacity>
+                        {stars}
                     </View>
                 </View>
             )
         } else {
             URL = (
-                <Animatable.View animation="rubberBand" duration={2000} iterationCount="infinite" style={{ textAlign: 'center' }}>
+                <Animatable.View animation="rubberBand" duration={2000} iterationCount="infinite" style={{ textAlign: 'center', justifyContent: "center" }}>
                     <Text>Currently Listening...</Text>
                 </Animatable.View>
             )
@@ -331,11 +401,14 @@ class Main extends PureComponent {
                         size={35}
                         color="#C0C0C0" />
                 </Animatable.View>
-                <Text style={styles.heading}>Tone</Text>
+                <Animatable.View duration={35000} animation="flash" iterationCount="infinite">
+                    <Text style={styles.heading}>Tone</Text>
+                </Animatable.View>
                 {URL}
-                <View style={{flexDirection: "row", justifyContent: "space-evenly"}}>
+                <View style={{ flexDirection: "row", justifyContent: "space-evenly" }}>
                     <Button onPress={this.nextSong} title="Get Song" />
-                    <Button onPress={this.sendNReceive} title="Send Voice Data" />
+                    <Button onPress={this.sendNReceive} title="Send" />
+                    <Button onPress={this.stater} title="State" />
                 </View>
             </View>
         );

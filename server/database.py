@@ -10,7 +10,7 @@ def get_user(username):
         with open("db/"+username+".json", "r") as js:
             parsed = json.load(js)
             data = json.loads(parsed)
-            print(populate_user(data))
+            # print(populate_user(data))
         return {"user": populate_user(data), "isNew": False}
     except:  # File does not exist
         with open("db/"+username+".json", "w") as file:
@@ -36,21 +36,42 @@ def new_user(username):
     return newUser
 
 
+def change_mood(User, mood):
+    if User.current == mood:
+        return False
+    User.current = mood
+    try:
+        with open("db/"+user.id+".json", "w") as file:
+            json.dump(get_json(User), file)
+            return True
+    except:
+        return False
+
+
+def write_prefs(User):
+    try:
+        with open("db/"+User.id+".json", "w") as file:
+            json.dump(get_json(User), file)
+            return True
+    except:
+        return False
+
+
 def rank(curr):
     return curr.pop(rand.randint(0, len(curr)-1))
 
 
-def get_json(user):
-    return client.Encoder().encode(user)
+def get_json(User):
+    return client.Encoder().encode(User)
 
 
 def populate_user(data):
-    currUser = client.User(data['id'], data['current'])
+    curr_user = client.User(data['id'], data['current'])
     for mood in data['mood']:
         mlist = ml.MusicList(mood)
         for cat in data['mood'][mood]['genres']:
             curr_node = node.GenreNode(cat['name'], cat['genres'], cat['rank'])
             mlist.genre_rank.append(curr_node)
         mlist.sort()
-        currUser.mood[mood] = mlist
-    return currUser
+        curr_user.mood[mood] = mlist
+    return curr_user

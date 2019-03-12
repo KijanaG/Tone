@@ -5,16 +5,15 @@ class GenreNode:
         self.name = name
         self.genres = copy.deepcopy(genres)
         self.rank = rank
-        self.value = -1*self.rank
 
     def __eq__(self, other):
-        return self.value == other.value
+        return self.rank == other.rank
 
     def __ne__(self, other):
         return not (self == other)
     
     def __lt__(self, other):
-        return self.value < other.value
+        return self.rank > other.rank
 
     def reprJSON(self):
         return dict(name=self.name, rank=self.rank, genres=self.genres)
@@ -23,7 +22,7 @@ class GenreNode:
         return self.genres
 
     # def __repr__(self):
-    #     return self.name
+    #     return str(self.name)
 
     # def __del__(self):
     #     print("Deleting {}".format(self))

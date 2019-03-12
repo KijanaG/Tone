@@ -1,4 +1,5 @@
 import random as rand
+import database as db
 
 def get_songs(Spotify, User):
     new_songs = []
@@ -12,55 +13,42 @@ def get_songs(Spotify, User):
             obj["uri"] = track['uri']
             new_songs.append(obj)
     rand.shuffle(new_songs)
-    return {"songs":new_songs[:20], "mood":User.current}
-    # playlists = Spotify.user_playlists(User.id)
-    # for playlist in playlists['items']:
-    #     id = playlist['id']
-    #     tracks = Spotify.user_playlist_tracks(User.id, id, 
-    #                     fields="items(track(id, artists))", limit=100)
-    #     ###TRACK_ID### tracks['items'][0]['track']['id']
-    #     for track in tracks['items']:
-    #         try:
-    #             artist_id = track['track']['artists'][0]['id']
-    #             artist = Spotify.artist(artist_id)
-    #             print(artist['genres'])
-    #             if len(genres) > 0:
-    #                 for gen in genres:
-    #                     print(gen)
-    #                 #     for x in user_genre:
-    #                 #         if x in gen:
-    #                 #             print("YESYES")
-    #                 # print(track['track']['id'])
-    #         except:
-    #             continue
-    # # GET FEATURED TRACKS
-    # listss = sp.featured_playlists(locale="en", limit=50)
-    # # print(listss['playlists']['items'])
-    # for play in listss['playlists']['items']:
-    #     # print(play['id'])
-    #     tracks = sp.user_playlist_tracks(
-    #         "spotify", play['id'], fields="items(track(id, artists))", limit=30)
-    #     for track in tracks['items']:
-    #         try:
-    #             artist_id = track['track']['artists'][0]['id']
-    #             artist = sp.artist(artist_id)
-    #             print(artist['genres'])
-    #         except:
-    #             print("\n")
-
-    # # results = sp.user_playlist("spotify", "37i9dQZF1DX32NsLKyzScr", fields="tracks")
-    # # print(results['tracks']['items'][0]['track']['id'])
-    # # tracks = results['tracks']
-    # # print(tracks)
-    # # track = sp.track(results['tracks']['items'][0]['track']['id'])
+    return {"songs": new_songs[:20], "mood": User.current}
 
 
-# Uses random probability to return one of the first 
+def update_prefs(User, rating, category, Spotify):
+    music_list = User.mood[User.current]
+    for x in music_list.genre_rank:
+        if x.name == category:
+            print(x.name, x.rank)
+            if rating > 3:
+                x.rank = x.rank + rating
+            elif rating == 2:
+                x.rank = x.rank - 4
+            elif rating == 1:
+                x.rank = x.rank - 5
+            else:
+                x.rank = x.rank
+            print(x.name, x.rank)
+    music_list.sort()
+    db.write_prefs(User)
+    if rating < 3:
+        return {"data": get_songs(Spotify, User), "change": True}
+    else:
+        return {"data": get_songs(Spotify, User), "change": False}
+
+
+# Uses random probability to return one of the first
 # five indices of the Music List genre arrays
 def gen_pos():
-    num = rand.uniform(0,1)
-    if   num < 0.5 : return 0
-    elif num < 0.7 : return 1
-    elif num < 0.9 : return 2
-    elif num < 0.95: return 3
-    else:            return 4
+    num = rand.uniform(0, 1)
+    if num < 0.5:
+        return 0
+    elif num < 0.7:
+        return 1
+    elif num < 0.9:
+        return 2
+    elif num < 0.95:
+        return 3
+    else:
+        return 4

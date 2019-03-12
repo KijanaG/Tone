@@ -25,7 +25,7 @@ class Login extends Component {
                 "sessionUserDefaultsKey": "SpotifySession",
                 "redirectURL": "spotify-rn-tone-access://spotify-login-callback",
                 "scopes": ["playlist-read-private", "streaming", "user-library-read", "user-read-email"],
-                "clientSecret": "cf242ec9b3b44cc582a5f8258356aa67"
+                // "clientSecret": "cf242ec9b3b44cc582a5f8258356aa67",
             };
             await Spotify.initialize(spotifyOptions);
         } else {
