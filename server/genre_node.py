@@ -20,10 +20,3 @@ class GenreNode:
 
     def get_genres(self):
         return self.genres
-
-    # def __repr__(self):
-    #     return str(self.name)
-
-    # def __del__(self):
-    #     print("Deleting {}".format(self))
-    

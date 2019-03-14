@@ -1,5 +1,6 @@
 import json
 
+
 class MusicList:
     def __init__(self, mood):
         self.mood = mood
@@ -13,9 +14,3 @@ class MusicList:
 
     def reprJSON(self):
         return dict(genres=self.genre_rank)
-        
-    # def __repr__(self):
-    #     return self.mood
-
-    # def __del__(self):
-    #     print("Deleting {}".format(self))

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, View, Button, ActivityIndicator, TouchableHighlight, Alert, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator, TouchableHighlight, Alert, Dimensions } from 'react-native';
 import Spotify from 'rn-spotify-sdk';
 
 
@@ -24,8 +24,7 @@ class Login extends Component {
                 "clientID": "b1482aa94ff644f7ac9be1b1cdf2f421",
                 "sessionUserDefaultsKey": "SpotifySession",
                 "redirectURL": "spotify-rn-tone-access://spotify-login-callback",
-                "scopes": ["playlist-read-private", "streaming", "user-library-read", "user-read-email"],
-                // "clientSecret": "cf242ec9b3b44cc582a5f8258356aa67",
+                "scopes": ["playlist-read-private", "streaming", "user-library-read", "user-read-email"]
             };
             await Spotify.initialize(spotifyOptions);
         } else {
@@ -56,6 +55,7 @@ class Login extends Component {
     }
 
     componentDidMount() {
+        console.log("HELELEEOOOO MOUNTED");
         this.initializeIfNeeded().catch((error) => {
             Alert.alert("Error", error.message);
         });

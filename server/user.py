@@ -1,4 +1,5 @@
-import json 
+import json
+
 
 class User:
     def __init__(self, id, current="neutral"):
@@ -6,14 +7,9 @@ class User:
         self.mood = {}
         self.current = current
 
-    def __del__(self):
-        print("Deleting {}".format(self))
-
-    # def __repr__(self):
-    #     return str(self.mood)
-
     def reprJSON(self):
         return dict(id=self.id, current=self.current, mood=self.mood)
+
 
 class Encoder(json.JSONEncoder):
     def default(self, obj):

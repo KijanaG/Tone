@@ -6,13 +6,14 @@ import music_list as ml
 
 
 def get_user(username):
-    try:    # Opening File
+# Opening File
+    try:
         with open("db/"+username+".json", "r") as js:
             parsed = json.load(js)
             data = json.loads(parsed)
-            # print(populate_user(data))
         return {"user": populate_user(data), "isNew": False}
-    except:  # File does not exist
+# File does not exist
+    except:
         with open("db/"+username+".json", "w") as file:
             curr_user = new_user(username)
             json.dump(get_json(curr_user), file)
@@ -24,7 +25,7 @@ def new_user(username):
     with open("db/template.json") as temp:
         temp_data = json.load(temp)
         for mood in temp_data:
-            cats = temp_data[mood]['categories']
+            cats  = temp_data[mood]['categories']
             mlist = ml.MusicList(mood)
             ranks = [15, 5, 10, 5, 10, 5, 15, 5, 15, 10, 5]
             for x in cats:
@@ -40,15 +41,10 @@ def change_mood(User, mood):
     if User.current == mood:
         return False
     User.current = mood
-    try:
-        with open("db/"+user.id+".json", "w") as file:
-            json.dump(get_json(User), file)
-            return True
-    except:
-        return False
+    return write_updates(User)
 
 
-def write_prefs(User):
+def write_updates(User):
     try:
         with open("db/"+User.id+".json", "w") as file:
             json.dump(get_json(User), file)

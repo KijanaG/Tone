@@ -1,16 +1,21 @@
 import React, { PureComponent } from 'react';
-import { StyleSheet, Text, View, Button, Image, Alert, Dimensions, TouchableOpacity, AppState } from 'react-native';
+import { StyleSheet, Text, View, Button, Image, Alert, Dimensions, TouchableOpacity, AppState, ActivityIndicator } from 'react-native';
 import Spotify from 'rn-spotify-sdk';
 import Voice from 'react-native-voice';
 import * as Animatable from 'react-native-animatable';
 import Icon from 'react-native-vector-icons/Ionicons';
 import backgroundImage from '../../assets/blank.jpg';
+import colorTheme from '../../assets/colorTheme.json';
 
 var { width, height } = Dimensions.get('window');
 var timeout = "timeout";
 
 class Main extends PureComponent {
     handleViewRef = ref => this.view = ref;
+    handleT = ref => this.tee = ref;
+    handleO = ref => this.oh = ref;
+    handleN = ref => this.en = ref;
+    handleE = ref => this.ee = ref;
 
     constructor(props) {
         super(props);
@@ -26,7 +31,7 @@ class Main extends PureComponent {
     state = {
         text: "",
         currentMood: "",
-        time: 15000,
+        time: 10000,
         songs: [],
         image: null,
         isPlaying: false,
@@ -34,17 +39,21 @@ class Main extends PureComponent {
         songTitle: "",
         artist: "",
         stars: [0, 0, 0, 0, 0],
-        starCount: 0
+        starCount: 0,
+        countDown: 5, //15
+        alert: false
     }
 
     componentDidMount() {
-        console.log("Mounting");
         AppState.addEventListener('change', this._handleAppStateChange)
         this.setState({ token: this.props.tokenId, user: this.props.user })
         this.sendUser();
         this.cycle();
-        this.setState({ time: 20000 })
         this.loop();
+        this.animateHeader();
+        setTimeout(() => {
+            this.countDown();
+        }, 1000)
     }
 
     componentWillUnmount() {
@@ -65,6 +74,19 @@ class Main extends PureComponent {
         }
     }
 
+    countDown = async () => {
+        let count = this.state.countDown - 1;
+        if (count < 0) {
+            await this.sendNReceive();
+            this.nextSong();
+            return;
+        }
+        this.setState({ countDown: count });
+        setTimeout(() => {
+            this.countDown();
+        }, 1000)
+    }
+
     loop = () => {
         this.view.transitionTo({ scale: 1.7 });
         setTimeout(() => { this.unloop() }, 2100)
@@ -72,6 +94,20 @@ class Main extends PureComponent {
     unloop = () => {
         this.view.transitionTo({ scale: 1.0 });
         setTimeout(() => { this.loop() }, 2100)
+    }
+    animateHeader = () => {
+        this.tee.transitionTo({ scale: 1.5 });
+        setTimeout(() => { this.oh.transitionTo({ scale: 1.5 }) }, 150)
+        setTimeout(() => { this.en.transitionTo({ scale: 1.5 }) }, 300)
+        setTimeout(() => { this.ee.transitionTo({ scale: 1.5 }) }, 450)
+        setTimeout(() => { this.inanimateHeader() }, 450)
+    }
+    inanimateHeader = () => {
+        this.tee.transitionTo({ scale: 1.0 });
+        setTimeout(() => { this.oh.transitionTo({ scale: 1.0 }) }, 150)
+        setTimeout(() => { this.en.transitionTo({ scale: 1.0 }) }, 300)
+        setTimeout(() => { this.ee.transitionTo({ scale: 1.0 }) }, 450)
+        setTimeout(() => { this.animateHeader() }, 30000)
     }
 
     sendUser = () => {
@@ -155,18 +191,18 @@ class Main extends PureComponent {
         }, this.state.time)
     }
 
-    nextSong = () => {
+    nextSong = async () => {
         clearTimeout(timeout);
         if (this.state.songs.length < 5)
             this.sendNReceive();
-        this.updatePreferences();
         if (this.state.starCount != 1 &&
             this.state.starCount != 2) {
-            Spotify.playURI(this.state.songs[0]['uri'], 0, 0)
+            this.updatePreferences();
+            await Spotify.playURI(this.state.songs[0]['uri'], 0, 0)
                 .then(res => {
                     setTimeout(() => {
                         this.playBack();
-                    }, 2000)
+                    }, 1750)
                 }).catch(err => {
                     Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => console.log(err));
                 });
@@ -174,6 +210,8 @@ class Main extends PureComponent {
             let songs = this.state.songs;
             let group = songs.splice(1);
             this.setState({ songs: group, category: cat });
+        } else {
+            this.updatePreferences();
         }
     }
 
@@ -196,8 +234,8 @@ class Main extends PureComponent {
         Spotify.setPlaying(true).then(
             setTimeout(() => {
                 Spotify.getPlaybackStateAsync().then(res => {
-                    pos = res.position;
-                    if(res) {
+                    pos = res.position + 2;
+                    if (res) {
                         Spotify.getPlaybackMetadataAsync().then(res => {
                             let time = (res['currentTrack']['duration'] * 1000) - pos;
                             timeout = setTimeout(() => {
@@ -206,7 +244,7 @@ class Main extends PureComponent {
                         })
                     }
                 })
-            }, 1400)
+            }, 2000)
         );
         this.setState({ isPlaying: true })
     }
@@ -251,6 +289,11 @@ class Main extends PureComponent {
         console.log(this.state);
     }
 
+    alertListener = () => {
+        let alertActivated = this.state.alert;
+        this.setState({ alert: !alertActivated });
+    }
+
     updatePreferences = () => {
         if (this.state.starCount != 0) {
             const info = {
@@ -269,19 +312,21 @@ class Main extends PureComponent {
                     } else {
                         this.populateSongs(parsedRes['data']['songs'], 1);
                     }
-                });
+                }).catch(err => {
+                    console.log(err);
+                })
         }
         this.setState({ starCount: 0, stars: [0, 0, 0, 0, 0] })
     }
 
-    sendNReceive = () => {
+    sendNReceive = async () => {
         console.log("Sending Voice To Server")
         const info = {
             text: this.state.text,
             token: this.state.token,
             user: this.state.user
         }
-        fetch("http://127.0.0.1:5000/send", {
+        await fetch("http://127.0.0.1:5000/send", {
             method: 'POST',
             body: JSON.stringify(info)
         }).then(res => res.json())
@@ -289,17 +334,23 @@ class Main extends PureComponent {
                 console.log(parsedRes);
                 if (parsedRes['moodChanged']) {
                     this.setState({ currentMood: parsedRes['data']['mood'] });
-                    Alert.alert("Mood Detection Changed!",
-                        "Would you like to change the music to match the mood?",
-                        [{
-                            text: "No",
-                            onPress: () => console.log("Do Nothing"),
-                            style: "cancel"
-                        }, {
-                            text: "Yes",
-                            onPress: () => { this.populateSongs(parsedRes['data']['songs'], 0) }
-                        }
-                        ])
+                    if (!this.state.alert) {
+                        this.alertListener();
+                        Alert.alert("Mood Detection Changed!",
+                            "Would you like to change the music to match the mood?",
+                            [{
+                                text: "No",
+                                onPress: () => this.alertListener(),
+                                style: "cancel"
+                            }, {
+                                text: "Yes",
+                                onPress: () => {
+                                    this.populateSongs(parsedRes['data']['songs'], 0);
+                                    this.alertListener();
+                                }
+                            }
+                            ])
+                    }
                 }
                 if (this.state.songs.length < 10)
                     this.populateSongs(parsedRes['data']['songs'], 1);
@@ -308,7 +359,7 @@ class Main extends PureComponent {
                     if (!res)
                         Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => Alert.alert("Error", error.message));
                     else
-                        Spotify.renewSession().then(res => console.log(res));
+                        Spotify.renewSession().then();
                 }).catch(err => console.log(err));
             }).catch(err => {
                 alert("Something went wrong, sorry!");
@@ -353,7 +404,7 @@ class Main extends PureComponent {
                                 style={[styles.icon, { marginTop: 11 }]}
                                 name={"ios-information-circle-outline"}
                                 size={30}
-                                color="yellow" />
+                                color={colorTheme[this.state.category]} />
                         </TouchableOpacity>
                         {this.state.isPlaying ?
                             <TouchableOpacity onPress={this.pauseMusic}>
@@ -361,7 +412,7 @@ class Main extends PureComponent {
                                     style={styles.icon}
                                     name={"ios-pause"}
                                     size={50}
-                                    color="yellow" />
+                                    color={colorTheme[this.state.category]} />
                             </TouchableOpacity>
                             :
                             <TouchableOpacity onPress={this.resumeMusic}>
@@ -369,7 +420,7 @@ class Main extends PureComponent {
                                     style={styles.icon}
                                     name={"ios-play"}
                                     size={50}
-                                    color="#C0C0C0" />
+                                    color={colorTheme[this.state.category]} />
                             </TouchableOpacity>
                         }
                         <TouchableOpacity onPress={this.nextSong}>
@@ -377,7 +428,7 @@ class Main extends PureComponent {
                                 style={[styles.icon, { marginTop: 10 }]}
                                 name={"ios-skip-forward"}
                                 size={30}
-                                color="purple" />
+                                color={colorTheme[this.state.category]} />
                         </TouchableOpacity>
                     </View>
                     <View style={{ flexDirection: "row", alignSelf: "center", marginTop: 10 }}>
@@ -386,14 +437,30 @@ class Main extends PureComponent {
                 </View>
             )
         } else {
-            URL = (
-                <Animatable.View animation="rubberBand" duration={2000} iterationCount="infinite" style={{ textAlign: 'center', justifyContent: "center" }}>
-                    <Text>Currently Listening...</Text>
-                </Animatable.View>
-            )
+            if (this.state.countDown > 0) {
+                URL = (
+                    <View>
+                        <Animatable.View animation="rubberBand" duration={4500} iterationCount="infinite" style={styles.listen}>
+                            <Text style={styles.listening}>Currently Listening...</Text>
+                        </Animatable.View>
+                        <Text style={styles.listening}>{this.state.countDown}</Text>
+                    </View>
+                )
+            } else {
+                URL = (
+                    <View style={styles.listen}>
+                        <ActivityIndicator animating={true} />
+                    </View>
+                )
+            }
         }
+        let frame = "#000000";
+        if(this.state.currentMood == "negative")
+            frame = "#153139FF";
+        else if(this.state.currentMood == "positive")
+            frame = "#3e1e0f";
         return (
-            <View style={styles.container}>
+            <View style={[styles.container, {backgroundColor: frame}]}>
                 <Image source={backgroundImage} style={{ width: width, height: height, position: "absolute", opacity: 0.35 }} />
                 <Animatable.View ref={this.handleViewRef} duration={2000} style={{ alignSelf: "flex-start", marginTop: 55, marginLeft: 25, position: "absolute" }}>
                     <Icon
@@ -401,9 +468,12 @@ class Main extends PureComponent {
                         size={35}
                         color="#C0C0C0" />
                 </Animatable.View>
-                <Animatable.View duration={35000} animation="flash" iterationCount="infinite">
-                    <Text style={styles.heading}>Tone</Text>
-                </Animatable.View>
+                <View style={styles.heading}>
+                    <Animatable.Text ref={this.handleT} animation="pulse" iterationCount="infinite" style={styles.tone} >T</Animatable.Text>
+                    <Animatable.Text ref={this.handleO} animation="pulse" iterationCount="infinite" style={styles.tone} >o</Animatable.Text>
+                    <Animatable.Text ref={this.handleN} animation="pulse" iterationCount="infinite" style={styles.tone} >n</Animatable.Text>
+                    <Animatable.Text ref={this.handleE} animation="pulse" iterationCount="infinite" style={styles.tone} >e</Animatable.Text>
+                </View>
                 {URL}
                 <View style={{ flexDirection: "row", justifyContent: "space-evenly" }}>
                     <Button onPress={this.nextSong} title="Get Song" />
@@ -419,8 +489,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: "center",
-        alignContent: "center",
-        backgroundColor: "#000000"
+        alignContent: "center"
     },
     play: {
         flexDirection: "row",
@@ -429,24 +498,37 @@ const styles = StyleSheet.create({
         marginTop: 10
     },
     heading: {
-        marginTop: 70,
+        marginTop: 100,
         marginBottom: 10,
-        fontFamily: "Avenir-Roman",
-        fontSize: 35,
-        fontWeight: "bold",
-        color: "#C0C0C0",
-        letterSpacing: 3,
+        flexDirection: "row"
     },
     icon: {
         marginLeft: 30,
         marginRight: 30
     },
+    tone: {
+        fontFamily: "Avenir-Roman",
+        fontSize: 35,
+        fontWeight: "bold",
+        color: "#C0C0C0",
+        letterSpacing: 2,
+    },
     title: {
         textAlign: "center",
-        margin: 10,
+        margin: 8,
         fontSize: 24,
         fontFamily: "Avenir-Roman",
         color: "#C0C0C0"
+    },
+    listen: {
+        marginTop: height / 4,
+    },
+    listening: {
+        fontSize: 26,
+        fontFamily: "Avenir-Roman",
+        fontWeight: "bold",
+        color: "#C0C0C0",
+        textAlign: "center"
     }
 })
 
