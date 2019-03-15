@@ -131,7 +131,6 @@ class Main extends PureComponent {
     }
 
     startVoice = async () => {
-        // console.log("Start Speech Recognition ~~ ")
         try {
             await Voice.start('en-US');
         } catch (e) {
