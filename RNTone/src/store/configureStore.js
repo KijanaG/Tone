@@ -2,9 +2,11 @@ import { createStore, combineReducers, compose, applyMiddleware } from 'redux';
 import thunk from 'redux-thunk';
 
 import songsReducer from './reducers/songs';
+import authReducer from './reducers/auth';
 
 const rootReducer = combineReducers({
-    songs: songsReducer
+    songs: songsReducer,
+    auth: authReducer
 })
 
 let composeEnhancers = compose;

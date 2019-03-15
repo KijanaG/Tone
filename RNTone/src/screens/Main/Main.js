@@ -1,11 +1,15 @@
 import React, { PureComponent } from 'react';
-import { StyleSheet, Text, View, Button, Image, Alert, Dimensions, TouchableOpacity, AppState, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Button, Image, ScrollView, Alert, Dimensions, TouchableOpacity, AppState, ActivityIndicator, Modal } from 'react-native';
 import Spotify from 'rn-spotify-sdk';
 import Voice from 'react-native-voice';
 import * as Animatable from 'react-native-animatable';
 import Icon from 'react-native-vector-icons/Ionicons';
 import backgroundImage from '../../assets/blank.jpg';
 import colorTheme from '../../assets/colorTheme.json';
+import Volume from '../../assets/volume.jpg';
+
+import { authenticate, login, verifyUser, sendText, alertChange, setSongData, updateMoodDB, updatePrefs } from '../../store/actions';
+import { connect } from 'react-redux';
 
 var { width, height } = Dimensions.get('window');
 var timeout = "timeout";
@@ -30,9 +34,7 @@ class Main extends PureComponent {
 
     state = {
         text: "",
-        currentMood: "",
-        time: 10000,
-        songs: [],
+        time: 50000,
         image: null,
         isPlaying: false,
         appState: AppState.currentState,
@@ -40,20 +42,21 @@ class Main extends PureComponent {
         artist: "",
         stars: [0, 0, 0, 0, 0],
         starCount: 0,
-        countDown: 5, //15
-        alert: false
+        countDown: 15,
+        modal: false
     }
 
     componentDidMount() {
-        AppState.addEventListener('change', this._handleAppStateChange)
-        this.setState({ token: this.props.tokenId, user: this.props.user })
-        this.sendUser();
+        AppState.addEventListener('change', this._handleAppStateChange);
+        this.props.verifyUser();
         this.cycle();
         this.loop();
         this.animateHeader();
+        setTimeout(() => { this.countDown() }, 1000)
         setTimeout(() => {
-            this.countDown();
-        }, 1000)
+            if (this.props.newUser)
+                this.setState({ modal: true })
+        }, 20000)
     }
 
     componentWillUnmount() {
@@ -65,26 +68,19 @@ class Main extends PureComponent {
             this.pauseMusic();
             this.stopVoice();
         } else if (nextAppState == "active") {
-            Spotify.isLoggedInAsync().then(res => {
-                if (!res)
-                    Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => console.log(err));
-                else
-                    Spotify.renewSession().then(res => console.log(res));
-            }).catch(err => console.log(err));
+            this.props.onAuthenticate();
         }
     }
 
     countDown = async () => {
         let count = this.state.countDown - 1;
         if (count < 0) {
-            await this.sendNReceive();
+            await this.props.sendVoiceData(this.state.text);
             this.nextSong();
             return;
         }
         this.setState({ countDown: count });
-        setTimeout(() => {
-            this.countDown();
-        }, 1000)
+        setTimeout(() => { this.countDown() }, 1000)
     }
 
     loop = () => {
@@ -110,38 +106,13 @@ class Main extends PureComponent {
         setTimeout(() => { this.animateHeader() }, 30000)
     }
 
-    sendUser = () => {
-        let user = {
-            user: this.props.user
-        }
-        fetch("http://127.0.0.1:5000/user", {
-            method: 'POST',
-            body: JSON.stringify(user)
-        }).then(res => res.json())
-            .then(parsedRes => {
-                console.log(parsedRes);
-                this.setState({ currentMood: parsedRes['mood'] })
-            })
-            .catch(err => {
-                alert("Something went wrong, sorry!");
-                console.log(err);
-            })
-    }
-
     onSpeechStart = e => { }
     onSpeechEnd = e => { }
-    onSpeechError = e => {
-        this.destroyVoice();
-    }
-    onSpeechResults = e => {
-        this.setState({ results: e.value })
-    }
+    onSpeechError = e => { this.destroyVoice() }
+    onSpeechPartialResult = e => { }
+    onSpeechResults = e => { this.setState({ results: e.value }) }
 
-    onSpeechPartialResult = e => {
-        this.setState({ partialResults: e.value })
-    }
-
-    onSpeechRecognized = e => {
+    onSpeechRecognized = async e => {
         if (e.isFinal) {
             let results = this.state.results[0];
             results += ". ";
@@ -149,18 +120,18 @@ class Main extends PureComponent {
             text += results;
             let length = text.split(" ").length;
             this.setState({ text: text });
-            if (length > 20)
-                this.sendNReceive();
+            if (length > 20) {
+                await this.props.sendVoiceData(this.state.text);
+                this.setState({ text: "" });
+                if (this.props.alert)
+                    this.alertListener();
+            }
             this.cycle();
         }
     }
 
     startVoice = async () => {
-        console.log("Start Speech Recognition ~~ ")
-        Spotify.isLoggedInAsync().then(res => {
-            if (!res)
-                Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => console.log(err));
-        }).catch(err => console.log(err));
+        // console.log("Start Speech Recognition ~~ ")
         try {
             await Voice.start('en-US');
         } catch (e) {
@@ -192,32 +163,38 @@ class Main extends PureComponent {
     }
 
     nextSong = async () => {
+        let sc = this.state.starCount;
         clearTimeout(timeout);
-        if (this.state.songs.length < 5)
-            this.sendNReceive();
-        if (this.state.starCount != 1 &&
-            this.state.starCount != 2) {
-            this.updatePreferences();
-            await Spotify.playURI(this.state.songs[0]['uri'], 0, 0)
-                .then(res => {
-                    setTimeout(() => {
-                        this.playBack();
-                    }, 1750)
-                }).catch(err => {
-                    Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => console.log(err));
+        if (this.props.songs.length < 5) {
+            await this.props.sendVoiceData(this.state.text);
+            if (this.props.alert)
+                this.alertListener();
+        }
+        if (sc != 1 && sc != 2) {
+            if (sc != 0)
+                this.props.updatePrefs(sc);
+            this.setState({ starCount: 0, stars: [0, 0, 0, 0, 0] })
+            await Spotify.playURI(this.props.songs[0]['uri'], 0, 0)
+                .then().catch(err => {
+                    Spotify.login().then()
+                        .catch(err => this.props.onAuthenticate());
                 });
-            let cat = this.state.songs[0]['cat'];
-            let songs = this.state.songs;
-            let group = songs.splice(1);
-            this.setState({ songs: group, category: cat });
+            setTimeout(() => {
+                this.playBack();
+            }, 1750)
+            this.props.setSong();
         } else {
-            this.updatePreferences();
+            if (sc != 0)
+                await this.props.updatePrefs(sc);
+            if (sc == 1 || sc == 2)
+                this.nextSong();
+            this.setState({ starCount: 0, stars: [0, 0, 0, 0, 0] })
         }
     }
 
-    playBack = () => {
-        Spotify.getPlaybackMetadataAsync().then(res => {
-            let time = (res['currentTrack']['duration'] * 1000) - 2;
+    playBack = async () => {
+        await Spotify.getPlaybackMetadataAsync().then(res => {
+            let time = (res['currentTrack']['duration'] * 1000) - 1750;
             this.setState({
                 image: res['currentTrack']['albumCoverArtURL'],
                 artist: res['currentTrack']['artistName'],
@@ -234,10 +211,12 @@ class Main extends PureComponent {
         Spotify.setPlaying(true).then(
             setTimeout(() => {
                 Spotify.getPlaybackStateAsync().then(res => {
-                    pos = res.position + 2;
+                    pos = (res.position + 2) * 1000;
+                    console.log("Postion : ", pos);
                     if (res) {
                         Spotify.getPlaybackMetadataAsync().then(res => {
                             let time = (res['currentTrack']['duration'] * 1000) - pos;
+                            console.log(time);
                             timeout = setTimeout(() => {
                                 this.nextSong();
                             }, time)
@@ -254,11 +233,6 @@ class Main extends PureComponent {
         clearTimeout(timeout);
     }
 
-    toPrevious = () => {
-        Spotify.skipToPrevious().then();
-        this.setState({ isPlaying: true })
-    }
-
     ratings = (id) => {
         if (id == 0 && this.state.stars[0] == 1) {
             this.setState({ stars: [0, 0, 0, 0, 0], starCount: 0 })
@@ -273,162 +247,76 @@ class Main extends PureComponent {
         this.setState({ stars: stars, starCount: id + 1 });
     }
 
-    updateMood = () => {
-        const info = {
-            mood: this.state.currentMood,
-            user: this.state.user
-        }
-        fetch("http://127.0.0.1:5000/mood", {
-            method: "POST",
-            body: JSON.stringify(info)
-        }).then(res => res.json())
-            .then(parsedRes => console.log(parsedRes));
+    stater = () => {
+        console.log(this.props);
     }
 
-    stater = () => {
-        console.log(this.state);
+    modal = () => {
+        let modal = this.state.modal;
+        this.setState({ modal: !modal });
     }
 
     alertListener = () => {
-        let alertActivated = this.state.alert;
-        this.setState({ alert: !alertActivated });
-    }
-
-    updatePreferences = () => {
-        if (this.state.starCount != 0) {
-            const info = {
-                rating: this.state.starCount,
-                user: this.state.user,
-                category: this.state.category,
-                token: this.state.token
-            }
-            fetch("http://127.0.0.1:5000/update", {
-                method: "POST",
-                body: JSON.stringify(info)
-            }).then(res => res.json())
-                .then(parsedRes => {
-                    if (parsedRes['change']) {
-                        this.populateSongs(parsedRes['data']['songs'], 0);
-                    } else {
-                        this.populateSongs(parsedRes['data']['songs'], 1);
-                    }
-                }).catch(err => {
-                    console.log(err);
-                })
-        }
-        this.setState({ starCount: 0, stars: [0, 0, 0, 0, 0] })
-    }
-
-    sendNReceive = async () => {
-        console.log("Sending Voice To Server")
-        const info = {
-            text: this.state.text,
-            token: this.state.token,
-            user: this.state.user
-        }
-        await fetch("http://127.0.0.1:5000/send", {
-            method: 'POST',
-            body: JSON.stringify(info)
-        }).then(res => res.json())
-            .then(parsedRes => {
-                console.log(parsedRes);
-                if (parsedRes['moodChanged']) {
-                    this.setState({ currentMood: parsedRes['data']['mood'] });
-                    if (!this.state.alert) {
-                        this.alertListener();
-                        Alert.alert("Mood Detection Changed!",
-                            "Would you like to change the music to match the mood?",
-                            [{
-                                text: "No",
-                                onPress: () => this.alertListener(),
-                                style: "cancel"
-                            }, {
-                                text: "Yes",
-                                onPress: () => {
-                                    this.populateSongs(parsedRes['data']['songs'], 0);
-                                    this.alertListener();
-                                }
-                            }
-                            ])
-                    }
+        Alert.alert("Mood Detection Changed!",
+            "Would you like to change the music to match the mood?",
+            [{
+                text: "No",
+                onPress: () => {
+                    this.props.change(false);
+                },
+                style: "cancel"
+            }, {
+                text: "Yes",
+                onPress: () => {
+                    this.props.change(true);
+                    this.props.updateMood();
+                    setTimeout(() => {
+                        this.nextSong();
+                    }, 1000)
                 }
-                if (this.state.songs.length < 10)
-                    this.populateSongs(parsedRes['data']['songs'], 1);
-                this.setState({ text: "" })
-                Spotify.isLoggedInAsync().then(res => {
-                    if (!res)
-                        Spotify.login().then(res => console.log("Log Back In ", res)).catch(err => Alert.alert("Error", error.message));
-                    else
-                        Spotify.renewSession().then();
-                }).catch(err => console.log(err));
-            }).catch(err => {
-                alert("Something went wrong, sorry!");
-                console.log(err);
-            })
-    }
-
-    populateSongs = (songs, num) => {
-        let list;
-        if (num == 0) {
-            list = [];
-            this.updateMood();
-        } else
-            list = this.state.songs;
-        for (song in songs)
-            list.push(songs[song]);
-        this.setState({ songs: list });
-        if (num == 0)
-            this.nextSong();
+            }
+            ])
     }
 
     render() {
         let songFont = null;
-        if (this.state.songTitle.length > 26) songFont = { fontSize: 20 };
+        if (this.state.songTitle.length > 26) songFont = { fontSize: height > 700 ? 20 : 18 };
         let artistFont = null;
-        if (this.state.artist.length > 26) artistFont = { fontSize: 20 };
+        if (this.state.artist.length > 26) artistFont = { fontSize: height > 700 ? 20 : 18 };
         let stars = null;
         stars = this.state.stars.map((star, i) => {
-            return <TouchableOpacity key={i} onPress={() => this.ratings(i)}><Icon style={{ marginLeft: 10, marginRight: 10 }} name={star == 0 ? "ios-star-outline" : "ios-star"} size={28} color="#C0C0C0" /></TouchableOpacity>
+            return <TouchableOpacity key={i} onPress={() => this.ratings(i)}>
+                <Icon style={{ marginLeft: 10, marginRight: 10 }}
+                    name={star == 0 ? "ios-star-outline" : "ios-star"} size={28} color={colorTheme[this.props.category]} />
+            </TouchableOpacity>
         })
         let URL = null;
         if (this.state.image) {
             URL = (
                 <View>
-                    <Image style={{ width: width, height: 372, marginTop: 20, marginBottom: 15 }}
+                    <Image style={styles.image}
                         source={{ uri: this.state.image }} />
                     <Text style={[styles.title, songFont]}>{this.state.songTitle}</Text>
                     <Text style={[styles.title, artistFont]}>{this.state.artist}</Text>
                     <View style={styles.play}>
-                        <TouchableOpacity>
-                            <Icon
-                                style={[styles.icon, { marginTop: 11 }]}
-                                name={"ios-information-circle-outline"}
-                                size={30}
-                                color={colorTheme[this.state.category]} />
+                        <TouchableOpacity onPress={this.modal}>
+                            <Icon style={[styles.icon, { marginTop: 11 }]} name={"ios-information-circle-outline"}
+                                size={30} color={colorTheme[this.props.category]} />
                         </TouchableOpacity>
                         {this.state.isPlaying ?
                             <TouchableOpacity onPress={this.pauseMusic}>
-                                <Icon
-                                    style={styles.icon}
-                                    name={"ios-pause"}
-                                    size={50}
-                                    color={colorTheme[this.state.category]} />
+                                <Icon style={styles.icon} name={"ios-pause"}
+                                    size={50} color={colorTheme[this.props.category]} />
                             </TouchableOpacity>
                             :
                             <TouchableOpacity onPress={this.resumeMusic}>
-                                <Icon
-                                    style={styles.icon}
-                                    name={"ios-play"}
-                                    size={50}
-                                    color={colorTheme[this.state.category]} />
+                                <Icon style={styles.icon} name={"ios-play"}
+                                    size={50} color={colorTheme[this.props.category]} />
                             </TouchableOpacity>
                         }
                         <TouchableOpacity onPress={this.nextSong}>
-                            <Icon
-                                style={[styles.icon, { marginTop: 10 }]}
-                                name={"ios-skip-forward"}
-                                size={30}
-                                color={colorTheme[this.state.category]} />
+                            <Icon style={[styles.icon, { marginTop: 10 }]} name={"ios-skip-forward"}
+                                size={30} color={colorTheme[this.props.category]} />
                         </TouchableOpacity>
                     </View>
                     <View style={{ flexDirection: "row", alignSelf: "center", marginTop: 10 }}>
@@ -449,20 +337,58 @@ class Main extends PureComponent {
             } else {
                 URL = (
                     <View style={styles.listen}>
-                        <ActivityIndicator animating={true} />
+                        <ActivityIndicator style={{ marginBottom: 10 }} animating={true} />
+                        <Text style={[styles.listening, { fontSize: 14 }]}>If song fails to load after 5 seconds</Text>
+                        <Button onPress={this.nextSong} title="Click Here!" />
                     </View>
                 )
             }
         }
         let frame = "#000000";
-        if(this.state.currentMood == "negative")
+        if (this.state.currentMood == "negative")
             frame = "#153139FF";
-        else if(this.state.currentMood == "positive")
+        else if (this.state.currentMood == "positive")
             frame = "#3e1e0f";
         return (
-            <View style={[styles.container, {backgroundColor: frame}]}>
-                <Image source={backgroundImage} style={{ width: width, height: height, position: "absolute", opacity: 0.35 }} />
-                <Animatable.View ref={this.handleViewRef} duration={2000} style={{ alignSelf: "flex-start", marginTop: 55, marginLeft: 25, position: "absolute" }}>
+            <View style={[styles.container, { backgroundColor: frame }]}>
+                <Modal
+                    animationType="slide"
+                    transparent={false}
+                    visible={this.state.modal}>
+                    <ScrollView>
+                        <View style={{ flexDirection: "row", marginTop: 30, marginBottom: 20, justifyContent: "center" }}>
+                            <Text style={[styles.listening, { marginTop: height > 700 ? 40 : 25, color: "#909090", fontSize: 28 }]}> Welcome to Tone</Text>
+                            <TouchableOpacity onPress={this.modal} style={{ position: "absolute", right: 30 }}>
+                                <Icon
+                                    name={"ios-close"}
+                                    size={55}
+                                    color="#909090" />
+                            </TouchableOpacity>
+                        </View>
+                        <Image source={Volume} style={{ width: 60, height: 60, marginBottom: 20, alignSelf: "center" }} />
+                        <Text style={styles.text}>
+                            Tone uses Google Sentiment Analysis to extract emotion from the conversation taking place.
+                            The goal behind the technology is to play music that matches a given mood – positive, negative, or neutral.
+                    </Text>
+                        <Icon
+                            style={{ alignSelf: "center", marginTop: 8 }}
+                            name={"ios-microphone"}
+                            size={55}
+                            color="#909090" />
+                        <Text style={styles.text}>
+                            Tone uses ratings on songs to adapt our algorithms to your preference for a given mood. So by ranking songs with a number of stars,
+                            oyu are providing the input we need to expose you to genres that you enjoy and that fit the vibe of any room!
+                    </Text>
+                        <View style={{ marginTop: 10 }}>
+                            <Text style={styles.bullet}>• Zero stars does nothing. </Text>
+                            <Text style={styles.bullet}>• 1 – 2 stars will discourage the current music and change the current station. </Text>
+                            <Text style={styles.bullet}>• 3 stars is neutral, neither good nor bad. </Text>
+                            <Text style={styles.bullet}>• 4 – 5 stars will encourage the music and keep the current station.</Text>
+                        </View>
+                    </ScrollView>
+                </Modal>
+                <Image source={backgroundImage} style={styles.background} />
+                <Animatable.View ref={this.handleViewRef} duration={2100} style={styles.animated}>
                     <Icon
                         name={"ios-microphone"}
                         size={35}
@@ -475,30 +401,39 @@ class Main extends PureComponent {
                     <Animatable.Text ref={this.handleE} animation="pulse" iterationCount="infinite" style={styles.tone} >e</Animatable.Text>
                 </View>
                 {URL}
-                <View style={{ flexDirection: "row", justifyContent: "space-evenly" }}>
-                    <Button onPress={this.nextSong} title="Get Song" />
-                    <Button onPress={this.sendNReceive} title="Send" />
-                    <Button onPress={this.stater} title="State" />
-                </View>
             </View>
         );
     }
 }
 
 const styles = StyleSheet.create({
+    animated: {
+        alignSelf: "flex-start",
+        marginTop: height > 700 ? 55 : 35,
+        marginLeft: 25,
+        position: "absolute"
+    },
+    background: {
+        width: width,
+        height: height,
+        position: "absolute",
+        opacity: 0.35
+    },
+    bullet: {
+        fontSize: 14,
+        textAlign: "center",
+        margin: 10,
+        marginRight: 30,
+        marginLeft: 15,
+        fontFamily: "Avenir-Roman",
+    },
     container: {
         flex: 1,
         alignItems: "center",
         alignContent: "center"
     },
-    play: {
-        flexDirection: "row",
-        alignSelf: "center",
-        justifyContent: "space-between",
-        marginTop: 10
-    },
     heading: {
-        marginTop: 100,
+        marginTop: height > 700 ? 70 : 40,
         marginBottom: 10,
         flexDirection: "row"
     },
@@ -506,19 +441,11 @@ const styles = StyleSheet.create({
         marginLeft: 30,
         marginRight: 30
     },
-    tone: {
-        fontFamily: "Avenir-Roman",
-        fontSize: 35,
-        fontWeight: "bold",
-        color: "#C0C0C0",
-        letterSpacing: 2,
-    },
-    title: {
-        textAlign: "center",
-        margin: 8,
-        fontSize: 24,
-        fontFamily: "Avenir-Roman",
-        color: "#C0C0C0"
+    image: {
+        width: width,
+        height: height > 700 ? 372 : 305,
+        marginTop: 20,
+        marginBottom: 15
     },
     listen: {
         marginTop: height / 4,
@@ -529,7 +456,59 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: "#C0C0C0",
         textAlign: "center"
+    },
+    play: {
+        flexDirection: "row",
+        alignSelf: "center",
+        justifyContent: "space-between",
+        marginTop: 10
+    },
+    title: {
+        textAlign: "center",
+        margin: height > 700 ? 8 : 6,
+        fontSize: 24,
+        fontFamily: "Avenir-Roman",
+        color: "#C0C0C0"
+    },
+    text: {
+        margin: 10,
+        width: width / 1.05,
+        fontSize: 16,
+        fontWeight: "bold",
+        fontFamily: "Avenir-Roman",
+    },
+    tone: {
+        fontFamily: "Avenir-Roman",
+        fontSize: 35,
+        fontWeight: "bold",
+        color: "#C0C0C0",
+        letterSpacing: 2,
     }
 })
 
-export default Main;
+const mapStateToProps = state => {
+    return {
+        loggedIn: state.auth.isLoggedIn,
+        id: state.auth.id,
+        token: state.auth.token,
+        songs: state.songs.songs,
+        mood: state.songs.currentMood,
+        alert: state.songs.alert,
+        category: state.songs.category,
+        newUser: state.songs.newUser
+    }
+}
+
+const mapDispatchToProps = dispatch => {
+    return {
+        verifyUser: () => dispatch(verifyUser()),
+        sendVoiceData: (text) => dispatch(sendText(text)),
+        onAuthenticate: () => dispatch(authenticate()),
+        change: (i) => dispatch(alertChange(i)),
+        updateMood: () => dispatch(updateMoodDB()),
+        setSong: () => dispatch(setSongData()),
+        updatePrefs: (rating) => dispatch(updatePrefs(rating))
+    }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Main);
