@@ -9,13 +9,13 @@ export const verifyUser = () => {
         let user = {
             user: items.auth.id
         }
-        await fetch(url + "user", {
+        await fetch(url+"user", {
             method: 'POST',
             body: JSON.stringify(user)
-        }).then(res => res.json())
-            .then(parsedRes => {
-                dispatch(updateMood(parsedRes))
-            }).catch(err => {
+        }).then(res => {
+            var results = JSON.parse(res['_bodyText'])
+            dispatch(updateMood(results));
+        }).catch(err => {
                 alert("Error\n", err.message)
             })
     }
@@ -29,18 +29,18 @@ export const sendText = (text) => {
             token: items.auth.token,
             user: items.auth.id
         }
-        await fetch(url + "send", {
+        await fetch(url+"send", {
             method: 'POST',
             body: JSON.stringify(info)
-        }).then(res => res.json())
-            .then(parsedRes => {
-                if (parsedRes['moodChanged']) {
-                    dispatch(temp(parsedRes['data']['songs'], parsedRes['data']['mood']));
-                    dispatch(alert());
-                } else if (items.songs.songs.length < 10) {
-                    dispatch(addSongs(parsedRes['data']['songs']))
-                }
-            }).catch(err => {
+        }).then(res => {
+            var results = JSON.parse(res['_bodyText']);
+            if(results['moodChanged']) {
+                dispatch(temp(results['data']['songs'], results['data']['mood']));
+                dispatch(alert());
+            } else if(items.songs.songs.length < 10) {
+                dispatch(addSongs(results['data']['songs']))
+            }
+        }).catch(err => {
                 alert("Error\n", err.message);
             })
     }
@@ -53,11 +53,10 @@ export const updateMoodDB = () => {
             mood: items.songs.currentMood,
             user: items.auth.id
         }
-        await fetch(url + "mood", {
+        await fetch(url+"mood", {
             method: "POST",
             body: JSON.stringify(info)
-        }).then(res => res.json()).then(res => console.log("UPDATED ", res))
-            .catch(err => alert("Error\n", err.message));
+        }).then(res => console.log("UPDATED")).catch(err => alert("Error\n", err.message));
     }
 }
 
@@ -70,18 +69,18 @@ export const updatePrefs = (rating) => {
             category: items.songs.category,
             token: items.auth.token
         }
-        await fetch(url + "update", {
+        await fetch(url+"update", {
             method: "POST",
             body: JSON.stringify(info)
-        }).then(res => res.json())
-            .then(parsedRes => {
-                if (parsedRes['change']) {
-                    dispatch(temp(parsedRes['data']['songs'], items.songs.currentMood));
-                    dispatch(alertChange(true));
-                } else {
-                    dispatch(addSongs(parsedRes['data']['songs']));
-                }
-            }).catch(err => alert("Error\n", err.message))
+        }).then(res => {
+            var results = JSON.parse(res['_bodyText']);
+            if(results['change']) {
+                dispatch(temp(results['data']['songs'], items.songs.currentMood));
+                dispatch(alertChange(true));
+            } else {
+                dispatch(addSongs(results['data']['songs']));
+            }
+        }).catch(err => alert("Error\n", err.message))
     }
 }
 

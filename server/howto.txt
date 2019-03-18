@@ -1,0 +1,13 @@
+From inside Python folder:
+
+export FLASK_ENV=development
+
+export GOOGLE_APPLICATION_CREDENTIALS="/Users/kjgarrett/Desktop/Python/Tone/server/react-native-229219-1451b2bc19bf.json"
+Sentiment                              Sample Values
+______________________________________________________________
+Clearly Positive                 "score":0.8,  "magnitude":3.0
+Clearly Negative                 "score":-0.6, "magnitude":4.0
+Neutral                          "score":0.1,  "magnitude":0.0
+Mixed                            "score":0.0,  "magnitude":4.0
+
+

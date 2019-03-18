@@ -10,6 +10,7 @@ var { width, height } = Dimensions.get('window');
 class Login extends Component {
     handleT = ref => this.tee = ref;
     handleO = ref => this.oh = ref;
+    handleA = ref => this.ay = ref;
     handleN = ref => this.en = ref;
     handleE = ref => this.ee = ref;
     constructor(props) {
@@ -24,7 +25,7 @@ class Login extends Component {
         if (this.props.loggedIn) {
             setTimeout(() => {
                 this.props.navigator.resetTo({
-                    screen: "Tone.MainScreen",
+                    screen: "Toane.MainScreen",
                     animated: true,
                     animationType: "fade",
                     navigatorStyle: {
@@ -43,16 +44,18 @@ class Login extends Component {
     animateHeader = () => {
         this.tee.transitionTo({ scale: 1.5 });
         setTimeout(() => { this.oh.transitionTo({ scale: 1.5 }) }, 150)
-        setTimeout(() => { this.en.transitionTo({ scale: 1.5 }) }, 300)
-        setTimeout(() => { this.ee.transitionTo({ scale: 1.5 }) }, 450)
-        setTimeout(() => { this.inanimateHeader() }, 450)
+        setTimeout(() => { this.ay.transitionTo({ scale: 1.5 }) }, 300)
+        setTimeout(() => { this.en.transitionTo({ scale: 1.5 }) }, 450)
+        setTimeout(() => { this.ee.transitionTo({ scale: 1.5 }) }, 600)
+        setTimeout(() => { this.inanimateHeader() }, 600)
     }
 
     inanimateHeader = () => {
         this.tee.transitionTo({ scale: 1.0 });
         setTimeout(() => { this.oh.transitionTo({ scale: 1.0 }) }, 150)
-        setTimeout(() => { this.en.transitionTo({ scale: 1.0 }) }, 300)
-        setTimeout(() => { this.ee.transitionTo({ scale: 1.0 }) }, 450)
+        setTimeout(() => { this.ay.transitionTo({ scale: 1.0 }) }, 300)
+        setTimeout(() => { this.en.transitionTo({ scale: 1.0 }) }, 450)
+        setTimeout(() => { this.ee.transitionTo({ scale: 1.0 }) }, 600)
     }
 
     spotifyLoginButtonWasPressed() {
@@ -67,7 +70,7 @@ class Login extends Component {
                     <Image source={backgroundImage} style={styles.background} />
                     <ActivityIndicator animating={true}>
                     </ActivityIndicator>
-                    <Text style={[styles.tone, {fontSize: 22}]}>
+                    <Text style={[styles.toane, {fontSize: 22}]}>
                         Loading...
                     </Text>
                 </View>
@@ -78,11 +81,12 @@ class Login extends Component {
                 <View style={styles.container}>
                     <Image source={backgroundImage} style={styles.background} />
                     <View style={styles.heading}>
-                        <Text style={styles.tone}>Welcome to </Text>
-                        <Animatable.Text ref={this.handleT} animation="pulse" iterationCount={1} style={styles.tone} >T</Animatable.Text>
-                        <Animatable.Text ref={this.handleO} animation="pulse" iterationCount={1} style={styles.tone} >o</Animatable.Text>
-                        <Animatable.Text ref={this.handleN} animation="pulse" iterationCount={1} style={styles.tone} >n</Animatable.Text>
-                        <Animatable.Text ref={this.handleE} animation="pulse" iterationCount={1} style={styles.tone} >e</Animatable.Text>
+                        <Text style={styles.toane}>Welcome to </Text>
+                        <Animatable.Text ref={this.handleT} animation="pulse" iterationCount={1} style={styles.toane} >T</Animatable.Text>
+                        <Animatable.Text ref={this.handleO} animation="pulse" iterationCount={1} style={styles.toane} >o</Animatable.Text>
+                        <Animatable.Text ref={this.handleA} animation="pulse" iterationCount={1} style={styles.toane} >a</Animatable.Text>
+                        <Animatable.Text ref={this.handleN} animation="pulse" iterationCount={1} style={styles.toane} >n</Animatable.Text>
+                        <Animatable.Text ref={this.handleE} animation="pulse" iterationCount={1} style={styles.toane} >e</Animatable.Text>
                     </View>
                     <TouchableOpacity onPress={this.spotifyLoginButtonWasPressed} >
                         <Animatable.View duration={2200} iterationCount="infinite" animation="pulse" style={styles.spotifyLoginButton}>
@@ -152,7 +156,7 @@ const styles = StyleSheet.create({
         color: 'black',
         fontWeight: "bold"
     },
-    tone: {
+    toane: {
         fontFamily: "Avenir-Roman",
         fontSize: 35,
         fontWeight: "bold",

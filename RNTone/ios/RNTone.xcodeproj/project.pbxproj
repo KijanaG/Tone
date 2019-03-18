@@ -18,7 +18,6 @@
 		139105C61AF99C1200B5F7CC /* libRCTSettings.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 139105C11AF99BAD00B5F7CC /* libRCTSettings.a */; };
 		139FDEF61B0652A700C62182 /* libRCTWebSocket.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 139FDEF41B06529B00C62182 /* libRCTWebSocket.a */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.m */; };
-		13B07FBD1A68108700A75B9A /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB11A68108700A75B9A /* LaunchScreen.xib */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		140ED2AC1D01E1AD002B40FF /* libReact.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 146834041AC3E56700842450 /* libReact.a */; };
@@ -42,6 +41,8 @@
 		8382FEB1548440129E8ADAED /* libRNEventEmitter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AB3C43A1D6F4420B7DE47A4 /* libRNEventEmitter.a */; };
 		8A87FFEF22323F7D00FE2845 /* libRNVectorIcons.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A87FFEB22323F5400FE2845 /* libRNVectorIcons.a */; };
 		8A87FFF122323FD400FE2845 /* Ionicons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8A87FFF022323FD400FE2845 /* Ionicons.ttf */; };
+		8AA7D0C2223D943A00F4C169 /* micro.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 8AA7D096223D943A00F4C169 /* micro.jpg */; };
+		8AA7D0C7223D96A000F4C169 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB11A68108700A75B9A /* LaunchScreen.xib */; };
 		8ABC063E222F35960029CF94 /* SpotifyAudioPlayback.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8ABC063D222F35960029CF94 /* SpotifyAudioPlayback.framework */; };
 		8ABC0644222F35B60029CF94 /* SpotifyMetadata.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8ABC0643222F35B60029CF94 /* SpotifyMetadata.framework */; };
 		8ABC0646222F35BE0029CF94 /* SpotifyAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8ABC0645222F35BE0029CF94 /* SpotifyAuthentication.framework */; };
@@ -403,6 +404,8 @@
 		832341B01AAA6A8300B99B32 /* RCTText.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTText.xcodeproj; path = "../node_modules/react-native/Libraries/Text/RCTText.xcodeproj"; sourceTree = "<group>"; };
 		8A87FFBD22323F5400FE2845 /* RNVectorIcons.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RNVectorIcons.xcodeproj; path = "../node_modules/react-native-vector-icons/RNVectorIcons.xcodeproj"; sourceTree = "<group>"; };
 		8A87FFF022323FD400FE2845 /* Ionicons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = Ionicons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Ionicons.ttf"; sourceTree = "<group>"; };
+		8AA7D096223D943A00F4C169 /* micro.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = micro.jpg; path = ../../../../micro.jpg; sourceTree = "<group>"; };
+		8AA7D0C4223D969600F4C169 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
 		8ABC063D222F35960029CF94 /* SpotifyAudioPlayback.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SpotifyAudioPlayback.framework; path = "../node_modules/rn-spotify-sdk/ios/external/SpotifySDK/SpotifyAudioPlayback.framework"; sourceTree = "<group>"; };
 		8ABC063F222F359E0029CF94 /* SpotifyAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SpotifyAuthentication.framework; path = "../node_modules/rn-spotify-sdk/ios/external/SpotifySDK/SpotifyAuthentication.framework"; sourceTree = "<group>"; };
 		8ABC0641222F35AA0029CF94 /* SpotifyMetadata.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SpotifyMetadata.framework; path = "../node_modules/rn-spotify-sdk/ios/external/SpotifySDK/SpotifyMetadata.framework"; sourceTree = "<group>"; };
@@ -666,6 +669,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				8AA7D096223D943A00F4C169 /* micro.jpg */,
 				8A87FFF022323FD400FE2845 /* Ionicons.ttf */,
 				13B07FAE1A68108700A75B9A /* RNTone */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
@@ -845,7 +849,11 @@
 				TargetAttributes = {
 					00E356ED1AD99517003FC87E = {
 						CreatedOnToolsVersion = 6.2;
+						DevelopmentTeam = KHZ6GARDTC;
 						TestTargetID = 13B07F861A680F5B00A75B9A;
+					};
+					13B07F861A680F5B00A75B9A = {
+						DevelopmentTeam = KHZ6GARDTC;
 					};
 					2D02E47A1E0B4A5D006451C7 = {
 						CreatedOnToolsVersion = 8.2.1;
@@ -1265,8 +1273,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8AA7D0C7223D96A000F4C169 /* LaunchScreen.xib in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
-				13B07FBD1A68108700A75B9A /* LaunchScreen.xib in Resources */,
+				8AA7D0C2223D943A00F4C169 /* micro.jpg in Resources */,
 				8A87FFF122323FD400FE2845 /* Ionicons.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1374,6 +1383,7 @@
 			isa = PBXVariantGroup;
 			children = (
 				13B07FB21A68108700A75B9A /* Base */,
+				8AA7D0C4223D969600F4C169 /* en */,
 			);
 			name = LaunchScreen.xib;
 			path = RNTone;
@@ -1386,6 +1396,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = KHZ6GARDTC;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
@@ -1416,6 +1427,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = KHZ6GARDTC;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/../node_modules/react-native-navigation/ios/**",
@@ -1443,6 +1455,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = NO;
+				DEVELOPMENT_TEAM = KHZ6GARDTC;
 				FRAMEWORK_SEARCH_PATHS = "../node_modules/rn-spotify-sdk/ios/external/SpotifySDK/**";
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1458,7 +1471,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.rn.spotify.tone;
 				PRODUCT_NAME = RNTone;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -1469,6 +1482,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KHZ6GARDTC;
 				FRAMEWORK_SEARCH_PATHS = "../node_modules/rn-spotify-sdk/ios/external/SpotifySDK/**";
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1484,7 +1498,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.rn.spotify.tone;
 				PRODUCT_NAME = RNTone;
 				VERSIONING_SYSTEM = "apple-generic";
 			};

@@ -18,6 +18,7 @@ class Main extends PureComponent {
     handleViewRef = ref => this.view = ref;
     handleT = ref => this.tee = ref;
     handleO = ref => this.oh = ref;
+    handleA = ref => this.ay = ref;
     handleN = ref => this.en = ref;
     handleE = ref => this.ee = ref;
 
@@ -34,7 +35,7 @@ class Main extends PureComponent {
 
     state = {
         text: "",
-        time: 50000,
+        time: 14000,
         image: null,
         isPlaying: false,
         appState: AppState.currentState,
@@ -52,7 +53,10 @@ class Main extends PureComponent {
         this.cycle();
         this.loop();
         this.animateHeader();
-        setTimeout(() => { this.countDown() }, 1000)
+        setTimeout(() => { 
+            this.countDown();
+            this.setState({time: 50000});
+        }, 1000)
         setTimeout(() => {
             if (this.props.newUser)
                 this.setState({ modal: true })
@@ -94,15 +98,17 @@ class Main extends PureComponent {
     animateHeader = () => {
         this.tee.transitionTo({ scale: 1.5 });
         setTimeout(() => { this.oh.transitionTo({ scale: 1.5 }) }, 150)
-        setTimeout(() => { this.en.transitionTo({ scale: 1.5 }) }, 300)
-        setTimeout(() => { this.ee.transitionTo({ scale: 1.5 }) }, 450)
-        setTimeout(() => { this.inanimateHeader() }, 450)
+        setTimeout(() => { this.ay.transitionTo({ scale: 1.5 }) }, 300)
+        setTimeout(() => { this.en.transitionTo({ scale: 1.5 }) }, 450)
+        setTimeout(() => { this.ee.transitionTo({ scale: 1.5 }) }, 600)
+        setTimeout(() => { this.inanimateHeader() }, 600)
     }
     inanimateHeader = () => {
         this.tee.transitionTo({ scale: 1.0 });
         setTimeout(() => { this.oh.transitionTo({ scale: 1.0 }) }, 150)
-        setTimeout(() => { this.en.transitionTo({ scale: 1.0 }) }, 300)
-        setTimeout(() => { this.ee.transitionTo({ scale: 1.0 }) }, 450)
+        setTimeout(() => { this.ay.transitionTo({ scale: 1.0 }) }, 300)
+        setTimeout(() => { this.en.transitionTo({ scale: 1.0 }) }, 450)
+        setTimeout(() => { this.ee.transitionTo({ scale: 1.0 }) }, 600)
         setTimeout(() => { this.animateHeader() }, 30000)
     }
 
@@ -211,11 +217,9 @@ class Main extends PureComponent {
             setTimeout(() => {
                 Spotify.getPlaybackStateAsync().then(res => {
                     pos = (res.position + 2) * 1000;
-                    console.log("Postion : ", pos);
                     if (res) {
                         Spotify.getPlaybackMetadataAsync().then(res => {
                             let time = (res['currentTrack']['duration'] * 1000) - pos;
-                            console.log(time);
                             timeout = setTimeout(() => {
                                 this.nextSong();
                             }, time)
@@ -244,10 +248,6 @@ class Main extends PureComponent {
         for (var i = id; i >= 0; i--)
             stars[i] = fill;
         this.setState({ stars: stars, starCount: id + 1 });
-    }
-
-    stater = () => {
-        console.log(this.props);
     }
 
     modal = () => {
@@ -356,7 +356,7 @@ class Main extends PureComponent {
                     visible={this.state.modal}>
                     <ScrollView>
                         <View style={{ flexDirection: "row", marginTop: 30, marginBottom: 20, justifyContent: "center" }}>
-                            <Text style={[styles.listening, { marginTop: height > 700 ? 40 : 25, color: "#909090", fontSize: 28 }]}> Welcome to Tone</Text>
+                            <Text style={[styles.listening, { marginTop: height > 700 ? 40 : 25, color: "#909090", fontSize: 28 }]}> Welcome to Toane</Text>
                             <TouchableOpacity onPress={this.modal} style={{ position: "absolute", right: 30 }}>
                                 <Icon
                                     name={"ios-close"}
@@ -366,7 +366,7 @@ class Main extends PureComponent {
                         </View>
                         <Image source={Volume} style={{ width: 60, height: 60, marginBottom: 20, alignSelf: "center" }} />
                         <Text style={styles.text}>
-                            Tone uses Google Sentiment Analysis to extract emotion from the conversation taking place.
+                            Toane uses Google Sentiment Analysis to extract emotion from the conversation taking place.
                             The goal behind the technology is to play music that matches a given mood – positive, negative, or neutral.
                     </Text>
                         <Icon
@@ -375,7 +375,7 @@ class Main extends PureComponent {
                             size={55}
                             color="#909090" />
                         <Text style={styles.text}>
-                            Tone uses ratings on songs to adapt our algorithms to your preference for a given mood. So by ranking songs with a number of stars,
+                            Toane uses ratings on songs to adapt our algorithms to your preference for a given mood. So by ranking songs with a number of stars,
                             oyu are providing the input we need to expose you to genres that you enjoy and that fit the vibe of any room!
                     </Text>
                         <View style={{ marginTop: 10 }}>
@@ -394,10 +394,11 @@ class Main extends PureComponent {
                         color="#C0C0C0" />
                 </Animatable.View>
                 <View style={styles.heading}>
-                    <Animatable.Text ref={this.handleT} animation="pulse" iterationCount="infinite" style={styles.tone} >T</Animatable.Text>
-                    <Animatable.Text ref={this.handleO} animation="pulse" iterationCount="infinite" style={styles.tone} >o</Animatable.Text>
-                    <Animatable.Text ref={this.handleN} animation="pulse" iterationCount="infinite" style={styles.tone} >n</Animatable.Text>
-                    <Animatable.Text ref={this.handleE} animation="pulse" iterationCount="infinite" style={styles.tone} >e</Animatable.Text>
+                    <Animatable.Text ref={this.handleT} animation="pulse" iterationCount="infinite" style={styles.toane} >T</Animatable.Text>
+                    <Animatable.Text ref={this.handleO} animation="pulse" iterationCount="infinite" style={styles.toane} >o</Animatable.Text>
+                    <Animatable.Text ref={this.handleA} animation="pulse" iterationCount="infinite" style={styles.toane} >a</Animatable.Text>
+                    <Animatable.Text ref={this.handleN} animation="pulse" iterationCount="infinite" style={styles.toane} >n</Animatable.Text>
+                    <Animatable.Text ref={this.handleE} animation="pulse" iterationCount="infinite" style={styles.toane} >e</Animatable.Text>
                 </View>
                 {URL}
             </View>
@@ -476,7 +477,7 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         fontFamily: "Avenir-Roman",
     },
-    tone: {
+    toane: {
         fontFamily: "Avenir-Roman",
         fontSize: 35,
         fontWeight: "bold",

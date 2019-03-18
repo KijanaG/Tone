@@ -9,14 +9,14 @@ const store = configureStore();
 
 
 Navigation.registerComponent(
-  "Tone.LoginScreen",
+  "Toane.LoginScreen",
   () => LoginScreen,
   store,
   Provider
 )
 
 Navigation.registerComponent(
-  "Tone.MainScreen",
+  "Toane.MainScreen",
   () => Main,
   store,
   Provider
@@ -24,7 +24,7 @@ Navigation.registerComponent(
 
 Navigation.startSingleScreenApp({
   screen: {
-    screen: "Tone.LoginScreen",
+    screen: "Toane.LoginScreen",
     navigatorStyle: {
       navBarHidden: true
     }
